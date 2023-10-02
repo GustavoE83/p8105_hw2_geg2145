@@ -6,25 +6,28 @@ output: github_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
 ```
 
-## R Markdown
+# Problem 1
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+First, clean the data in pols-month.csv. Use separate() to break up the variable mon into integer variables year, month, and day; replace month number with month name; create a president variable taking values gop and dem, and remove prez_dem and prez_gop; and remove the day variable.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+df_pols = read_csv(file = "./data/pols-month.csv") %>%
+  separate(col = mon, 
+           sep= "-", 
+           into = c("year", "month", "day"),
+           convert = T) %>%
+  mutate(month = month.name[month],
+         president = ifelse(prez_dem == 1, "dem", "gop")) %>%
+  select(-c("day", "prez_dem", "prez_gop"))
 ```
 
-## Including Plots
+Second, clean the data in snp.csv using a similar process to the above. For consistency across datasets, arrange according to year and month, and organize so that year and month are the leading columns.
 
-You can also embed plots, for example:
+Third, tidy the unemployment data so that it can be merged with the previous datasets. This process will involve switching from “wide” to “long” format; ensuring that key variables have the same name; and ensuring that key variables take the same values.
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
+Join the datasets by merging snp into pols, and merging unemployment into the result.
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Write a short paragraph about these datasets. Explain briefly what each dataset contained, and describe the resulting dataset (e.g. give the dimension, range of years, and names of key variables).
