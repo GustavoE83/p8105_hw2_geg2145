@@ -125,7 +125,11 @@ df_trashWheels = bind_rows(df_mrTrash,
 
 Write a paragraph about these data; you are encouraged to use inline R. Be sure to note the number of observations in the resulting dataset, and give examples of key variables. For available data, what was the total weight of trash collected by Professor Trash Wheel? What was the total number of cigarette butts collected by Gwynnda in July of 2021?
 
+**The final dataset has information on the trash collected by each of the three trash wheels (Mr. Trash Wheel, Professor Trash Wheel and Gwynnda) and put into each one of their dumpsters. Every row represent trash put by one of these trash wheels into one of their dumpsters (`r nrow(df_trashWheels)` rows total). There are `r ncol(df_trashWheels)`, among which we have the unique `dumpster`-`wheel` combination, the `weight_tons` collected, and the `homes_powered` by that specific wheel.**
 
+**Professor Trash Wheel collected `r sum(pull(df_profTrash, weight_tons))` tons of trash total.**
+
+**Gwynnda collected `r sum(pull(filter(df_gwynnda, month == "July" & year == 2021), cigarette_butts))` cigarette butts in July of 2021.**
 
 # Problem 3
 
