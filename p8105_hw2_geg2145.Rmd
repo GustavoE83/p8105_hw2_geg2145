@@ -86,11 +86,11 @@ The data include a column for the (approximate) number of homes powered. This ca
 
 ```{r p2_mrtrash}
 #After changing the excel file name to tash.xlsx
-df_mrTrash = read_excel("./data/trash.xlsx", sheet = 1, 
+df_mrTrash = read_excel("./data/trash_new.xlsx", sheet = 1, 
                         col_names = TRUE, skip = 1,
                         range = cell_cols("A:N")) %>%
   janitor::clean_names() %>% 
-  filter(!is.na(dumpster)) %>%
+  drop_na() %>%
   mutate(homes_powered = weight_tons * 500/30,
          wheel = "Mr. Trash Wheel",
          year = as.numeric(year))
@@ -99,21 +99,21 @@ df_mrTrash = read_excel("./data/trash.xlsx", sheet = 1,
 Use a similar process to import, clean, and organize the data for Professor Trash Wheel and Gwynnda, and combine these with the Mr. Trash Wheel dataset to produce a single tidy dataset. To keep track of which Trash Wheel is which, you may need to add an additional variable to all datasets before combining.
 
 ```{r p2_prof_trash}
-df_profTrash = read_excel("./data/trash.xlsx", sheet = 2, 
+df_profTrash = read_excel("./data/trash_new.xlsx", sheet = 2, 
                         col_names = TRUE, skip = 1,
                         range = cell_cols("A:M")) %>%
   janitor::clean_names() %>% 
-  filter(!is.na(dumpster)) %>%
+  drop_na() %>%
   mutate(homes_powered = weight_tons * 500/30,
          wheel = "Professor Trash Wheel")
 ```
 
 ```{r p2_gwynnda}
-df_gwynnda = read_excel("./data/trash.xlsx", sheet = 4, 
+df_gwynnda = read_excel("./data/trash_new.xlsx", sheet = 4, 
                         col_names = TRUE, skip = 1,
-                        range = cell_cols("A:K")) %>%
+                        range = cell_cols("A:L")) %>%
   janitor::clean_names() %>% 
-  filter(!is.na(dumpster)) %>%
+  drop_na() %>%
   mutate(homes_powered = weight_tons * 500/30,
          wheel = "Gwynnda")
 ```
