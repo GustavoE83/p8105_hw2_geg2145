@@ -86,11 +86,12 @@ The data include a column for the (approximate) number of homes powered. This ca
 
 ```{r p2_mrtrash}
 #After changing the excel file name to tash.xlsx
-df_mrTrash = read_excel("./data/trash_new.xlsx", sheet = 1, 
+df_mrTrash = read_excel("./data/trash_new.xlsx", 
+                        sheet = "Mr. Trash Wheel", 
                         col_names = TRUE, skip = 1,
                         range = cell_cols("A:N")) %>%
   janitor::clean_names() %>% 
-  drop_na() %>%
+  filter(!is.na(dumpster))%>%
   mutate(homes_powered = weight_tons * 500/30,
          wheel = "Mr. Trash Wheel",
          year = as.numeric(year))
@@ -99,21 +100,23 @@ df_mrTrash = read_excel("./data/trash_new.xlsx", sheet = 1,
 Use a similar process to import, clean, and organize the data for Professor Trash Wheel and Gwynnda, and combine these with the Mr. Trash Wheel dataset to produce a single tidy dataset. To keep track of which Trash Wheel is which, you may need to add an additional variable to all datasets before combining.
 
 ```{r p2_prof_trash}
-df_profTrash = read_excel("./data/trash_new.xlsx", sheet = 2, 
+df_profTrash = read_excel("./data/trash_new.xlsx", 
+                          sheet = "Professor Trash Wheel", 
                         col_names = TRUE, skip = 1,
                         range = cell_cols("A:M")) %>%
   janitor::clean_names() %>% 
-  drop_na() %>%
+  filter(!is.na(dumpster)) %>%
   mutate(homes_powered = weight_tons * 500/30,
          wheel = "Professor Trash Wheel")
 ```
 
 ```{r p2_gwynnda}
-df_gwynnda = read_excel("./data/trash_new.xlsx", sheet = 4, 
+df_gwynnda = read_excel("./data/trash_new.xlsx", 
+                        sheet = "Gwynnda Trash Wheel", 
                         col_names = TRUE, skip = 1,
                         range = cell_cols("A:L")) %>%
   janitor::clean_names() %>% 
-  drop_na() %>%
+  filter(!is.na(dumpster)) %>%
   mutate(homes_powered = weight_tons * 500/30,
          wheel = "Gwynnda")
 ```
@@ -129,18 +132,67 @@ Write a paragraph about these data; you are encouraged to use inline R. Be sure 
 
 **Professor Trash Wheel collected `r sum(pull(df_profTrash, weight_tons))` tons of trash total.**
 
-**Gwynnda collected `r sum(pull(filter(df_gwynnda, month == "July" & year == 2021), cigarette_butts))` cigarette butts in July of 2021.**
+**Gwynnda collected `r sum(pull(filter(df_gwynnda, month == "July" & year == 2022), cigarette_butts))` cigarette butts in July of 2022.**
 
 # Problem 3
 
 This problem uses data collected in an observational study to understand the trajectory of Alzheimer’s disease (AD) biomarkers. Study participants were free of Mild Cognitive Impairment (MCI), a stage between the expected cognitive decline of normal aging and the more serious decline of dementia, at the study baseline.
 
-Basic demographic information were measured at the study baseline. The study monitored the development of MCI and recorded the age of MCI onset during the follow-up period, with the last visit marking the end of follow-up. APOE4 is a variant of the apolipoprotein E gene, significantly associated with a higher risk of developing Alzheimer’s disease. The amyloid β
-
-42/40 ratio holds significant promise for diagnosing and predicting disease outcomes. This ratio undergoes changes over time and has been linked to the manifestation of clinical symptoms of Alzheimer’s disease.
+Basic demographic information were measured at the study baseline. The study monitored the development of MCI and recorded the age of MCI onset during the follow-up period, with the last visit marking the end of follow-up. APOE4 is a variant of the apolipoprotein E gene, significantly associated with a higher risk of developing Alzheimer’s disease. The amyloid 42/40 ratio holds significant promise for diagnosing and predicting disease outcomes. This ratio undergoes changes over time and has been linked to the manifestation of clinical symptoms of Alzheimer’s disease.
 
 Import, clean, and tidy the dataset of baseline demographics. Ensure that sex and APOE4 carrier status are appropriate encoded (i.e. not numeric), and remove any participants who do not meet the stated inclusion criteria (i.e. no MCI at baseline). Discuss important steps in the import process and relevant features of the dataset. How many participants were recruited, and of these how many develop MCI? What is the average baseline age? What proportion of women in the study are APOE4 carriers?
 
+```{r p3_baseline, warning=FALSE}
+df_baseline = read_csv(file = "./data/MCI_baseline.csv",
+                       skip = 1) %>%
+  janitor::clean_names() %>%
+  mutate(sex = ifelse(sex == 1, "male", "female"),
+         apoe4 = ifelse(apoe4 == 1, "carrier", "not carrier"),
+  age_at_onset = case_when(
+           age_at_onset == "." ~ NA,
+           TRUE ~ as.numeric(age_at_onset)
+         )
+         ) %>%
+  filter(is.na(age_at_onset) | current_age < age_at_onset)
+```
+
+**After importing the data with a standard `read_csv` call, I noticed the first row described each column, so I had to skip that. I cleaned all the variable names and changed the values of `sex` and `apoe4` to "male"/"female" and "carrier"/"not carrier", respectively. Since I wanted the  `age_on_onset` variable to be numerical, I exchanged all "." for NAs. Finally, I filtered out individuals who's `age_on_onset` was lower than their `current_age` (meaning they already had MCI when the study started). After all that data cleaning, we had `r nrow(df_baseline)` total individuals recruited, out of which `r nrow(filter(df_baseline, !is.na(age_at_onset)))` developed MCI. The average baseline age was `r mean(pull(df_baseline, current_age))` and `r nrow(filter(df_baseline, sex == "female" & apoe4 == "carrier"))/nrow(filter(df_baseline, sex == "female")) * 100` percent of women are APOE4 carriers.**
+
 Similarly, import, clean, and tidy the dataset of longitudinally observed biomarker values; comment on the steps on the import process and the features of the dataset.
 
+```{r p3_long}
+df_long = read_csv(file = "./data/mci_amyloid.csv",
+                       skip = 1) %>%
+  janitor::clean_names() %>%
+  pivot_longer("baseline":"time_8",
+               names_to= "years_since_baseline",
+               values_to= "biomarker_value") %>%
+  mutate(years_since_baseline = factor(case_when(
+    years_since_baseline == "baseline" ~ "baseline",
+    years_since_baseline == "Na" ~ NA,
+    TRUE ~ str_c(str_sub(
+      years_since_baseline,-1,-1), " years"))),
+    biomarker_value = case_when(
+      years_since_baseline == "Na" ~ NA,
+      TRUE ~ as.numeric(biomarker_value)
+    )) %>%
+  rename(id = study_id)
+```
+
+**The dataset was imported using `read_csv` and skipping the first row (since it contained descriptions of the data). After cleaning the data, we have three variables: the individual's `id` and their `biomarker_value` for a specific time in the study (baseline, 2 years, 4 years, 6 years, 8 years). Note we changed the id variable name from `study_id` to `id` to facilitate future merging. Some data cleaning also took place so that `biomarker_value` is can be numeric variable and `years_since_baseline` can be a factor variable with 5 levels.**
+
 Check whether some participants appear in only the baseline or amyloid datasets, and comment on your findings. Combine the demographic and biomarker datasets so that only participants who appear in both datasets are retained, and briefly describe the resulting dataset; export the result as a CSV to your data directory.
+
+```{r p3_merging}
+df_unmatched_base = anti_join(df_baseline, df_long, by = "id")
+
+df_unmatched_long = anti_join(df_long, df_baseline, by = "id")
+
+df_mci_study = inner_join(df_long, df_baseline, by = "id")
+
+write_csv(df_mci_study, "./data/df_mci_study.csv")
+```
+
+**There are `r nrow(df_unmatched_base)` individuals in the baseline dataset that we don't have longitudinal data for (ID's `r unique(pull(df_unmatched_base, id))`) and `r nrow(df_unmatched_long)` individuals in the longitudinal dataset that we don't have baseline data for (ID's `r unique(pull(df_unmatched_long, id))`).**
+
+**DESCRIBE FINAL DATASET**
