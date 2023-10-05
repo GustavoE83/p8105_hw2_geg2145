@@ -22,7 +22,10 @@ df_pols = read_csv(file = "./data/pols-month.csv") %>%
            into = c("year", "month", "day"),
            convert = T) %>%
   mutate(month = month.name[month],
-         president = ifelse(prez_dem == 1, "dem", "gop")) %>%
+         president = case_when(
+           prez_dem == 1 ~ "dem",
+           TRUE ~ "gop"
+         )) %>%
   select(-c("day", "prez_dem", "prez_gop"))
 ```
 
@@ -36,7 +39,9 @@ df_snp = read_csv(file = "./data/snp.csv") %>%
            into = c("month", "day", "year"),
            convert = T) %>%
   mutate(month = month.name[month],
-         year = ifelse(year < 50, year + 2000, year + 1900)) %>%
+         year = case_when(
+           year < 50 ~ year + 2000,
+           TRUE ~ year + 1900)) %>%
   arrange(year, month) %>%
   relocate(year, month)
 ```
@@ -146,8 +151,14 @@ Import, clean, and tidy the dataset of baseline demographics. Ensure that sex an
 df_baseline = read_csv(file = "./data/MCI_baseline.csv",
                        skip = 1) %>%
   janitor::clean_names() %>%
-  mutate(sex = ifelse(sex == 1, "male", "female"),
-         apoe4 = ifelse(apoe4 == 1, "carrier", "not carrier"),
+  mutate(sex = case_when(
+              sex == 1 ~ "male",
+              TRUE ~ "female"),
+         apoe4 = case_when(
+           apoe4 == 1 ~ "carrier",
+           TRUE ~ "not carrier"
+           
+         ),
   age_at_onset = case_when(
            age_at_onset == "." ~ NA,
            TRUE ~ as.numeric(age_at_onset)
@@ -188,11 +199,12 @@ df_unmatched_base = anti_join(df_baseline, df_long, by = "id")
 
 df_unmatched_long = anti_join(df_long, df_baseline, by = "id")
 
-df_mci_study = inner_join(df_long, df_baseline, by = "id")
+df_mci_study = inner_join(df_long, df_baseline, by = "id") %>% 
+  rename(age_at_baseline = current_age)
 
 write_csv(df_mci_study, "./data/df_mci_study.csv")
 ```
 
-**There are `r nrow(df_unmatched_base)` individuals in the baseline dataset that we don't have longitudinal data for (ID's `r unique(pull(df_unmatched_base, id))`) and `r nrow(df_unmatched_long)` individuals in the longitudinal dataset that we don't have baseline data for (ID's `r unique(pull(df_unmatched_long, id))`).**
+**There are `r nrow(df_unmatched_base)` individuals in the baseline dataset that we don't have longitudinal data for (ID's `r unique(pull(df_unmatched_base, id))`) and `r length(unique(pull(df_unmatched_long, id)))` individuals in the longitudinal dataset that we don't have baseline data for (ID's `r unique(pull(df_unmatched_long, id))`).**
 
-**DESCRIBE FINAL DATASET**
+**The final dataset has `r nrow(df_mci_study)` and `r ncol(df_mci_study)`. Every row is a `id`-`years_since_baseline` combination. For every one of those combinations, we have the individual's `sex`, `education` level, `apoe4` status ("carrier"/ "not carrier") and `biomarker_value` at that time, along with the age they had at the beggining of the study and the age they had when they got MCI.**
